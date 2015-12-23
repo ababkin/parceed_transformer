@@ -1,0 +1,14 @@
+dist/*
+dist/**/*
+.DS_Store
+log/*
+config.json
+.cabal-sandbox/*
+cabal.sandbox.config
+*.aux
+*.hp
+*.prof
+*.ps
+*.json
+*.csv
+parceed
