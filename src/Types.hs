@@ -28,9 +28,11 @@ data Program = Program {
     pid       :: Text
   , pTitle    :: Text
   , pInfo     :: Maybe Info
-  , pFaculty        :: Maybe Faculty
+  , pFacultyTable   :: Maybe FacultyTable
+  , pProgramFaculty :: Maybe ProgramFaculty
   , pWorkSchedule   :: Maybe WorkSchedule
   , pCallSchedules  :: Maybe CallSchedules
+  , pEducationalEnvironment  :: Maybe EducationalEnvironment
   } deriving Show
 
 data Info = Info {
@@ -49,6 +51,8 @@ instance FromJSON Program where
     <$> o .: "id"
     <*> o .: "title"
     <*> o .: "information"
+    <*> parseJSON obj
+    <*> parseJSON obj
     <*> parseJSON obj
     <*> parseJSON obj
     <*> parseJSON obj
@@ -99,34 +103,51 @@ toBool "No"   = False
 
 
 
-data Faculty = Faculty {
+data FacultyTable = FacultyTable {
     fFullTimePhysician    :: Maybe Int
   , fFullTimeNonPhysician :: Maybe Int
   , fPartTimePhysician    :: Maybe Int
   , fPartTimeNonPhysician :: Maybe Int
-  , fPercentageFemalePaid :: Maybe Text
+  } deriving Show
+
+data ProgramFaculty = ProgramFaculty {
+    fPercentageFemalePaid :: Maybe Text
   , fRatioFullTime        :: Maybe Text
   } deriving Show
 
-instance FromJSON Faculty where
-  parseJSON (Object o)   = do
-    facultyTable    <- o .: "faculty table"
+
+instance FromJSON (Maybe FacultyTable) where
+  parseJSON (Object o) =
+    (sequenceA . fmap parseFacultyTable) =<< o .:? "faculty table"
+  parseJSON o = typeMismatch "Maybe FacultyTable" o
+
+parseFacultyTable facultyTable = do
     (Object t):_    <- facultyTable .: "tables"
     rs <- t .: "rows"
     dict <- catMaybes <$> mapM parseFacultyRow rs
     let fulltime = lookup "Full-time paid" dict
         parttime = lookup "Part-time paid" dict
     
-    programFaculty  <- o .: "program faculty"
+    return $ FacultyTable (join (fst <$> fulltime)) (join (snd <$> fulltime))
+                          (join (fst <$> parttime)) (join (snd <$> parttime))
+
+
+instance FromJSON (Maybe ProgramFaculty) where
+  parseJSON (Object o) =
+    (sequenceA . fmap parseProgramFaculty) =<< o .:? "program faculty"
+  parseJSON o = typeMismatch "Maybe ProgramFaculty" o
+
+parseProgramFaculty programFaculty = do
     l <- programFaculty .: "list"
     is <- l .: "items"
 
-    Faculty (join (fst <$> fulltime)) (join (snd <$> fulltime))
-            (join (fst <$> parttime)) (join (snd <$> parttime))
+    ProgramFaculty
       <$> is `lookupValue` "Percentage of full-time paid female physician faculty"
       <*> is `lookupValue` "Ratio of full-time equivalent paid faculty to positions"
 
-  parseJSON o = typeMismatch "Faculty" o
+
+
+
 
 parseFacultyRow :: Value -> Parser (Maybe (Text, (Maybe Int, Maybe Int)))
 parseFacultyRow (Object o) = do
@@ -217,41 +238,66 @@ parseCallScheduleRow (Object o) = do
 parseCallScheduleRow x = typeMismatch "Maybe (Int, CallSchedule)" x
 
 
+
+data EducationalEnvironment = EducationalEnvironment {
+    eeAvgScheduledLecturesFirstYear :: Int
+  , eeTrainingFirstYear             :: Text
+  , eeTrainingNonHospitalFirstYear  :: Text
+  } deriving Show
+instance FromJSON (Maybe EducationalEnvironment) where
+  parseJSON (Object o) =
+    (sequenceA . fmap parse) =<< (o .:? "education environment")
+
+    where
+      parse :: Value -> Parser EducationalEnvironment
+      parse (Object o)   = do
+          (Object l):_  <- o .: "lists"
+          is            <- l .: "items"
+          EducationalEnvironment
+            <$> is `lookupParsedIntValue`     "Avg hours/week of regularly scheduled lectures/conferences during 1st year"
+            <*> is `lookupValue`     "Training at hospital outpatient clinics during 1st year"
+            <*> is `lookupValue`  "Training during 1st year in ambulatory non-hospital community-based settings, eg, physician offices, community clinics"
+
 instance ToNamedRecord Program 
   where
-    toNamedRecord Program{pid, pTitle, pInfo, pFaculty, pWorkSchedule, pCallSchedules} = namedRecord [
-        "ProgramId"               .= pid
-      , "ProgramTitle"            .= pTitle
+    toNamedRecord Program{pid, pTitle, pInfo, pFacultyTable, pProgramFaculty, pWorkSchedule, pCallSchedules, pEducationalEnvironment} = namedRecord [
+        "Program Id"               .= pid
+      , "Program Title"            .= pTitle
       
-      , "InfoLengthOfTraining"    .= showJust iLengthOfTraining pInfo
-      , "InfoRequiredLength"      .= showJust iRequiredLength pInfo
-      , "InfoAccepting20162017"   .= showJust iAccepting20162017 pInfo
-      , "InfoAccepting20172018"   .= showJust iAccepting20172018 pInfo
-      , "InfoProgramStartDates"   .= just iProgramStarts pInfo
-      , "InfoParticipatesInEras"  .= showJust iEras pInfo
-      , "InfoAffiliatedWithUsGov" .= showJust iAffiliatedUsGov pInfo
+      , "Basic Information - Information - Accredited length of training"                                         .= showJust iLengthOfTraining pInfo
+      , "Basic Information - Information - Required length"                                                       .= showJust iRequiredLength pInfo
+      , "Basic Information - Information - Accepting applications for training that begins in 2016-2017"          .= showJust iAccepting20162017 pInfo
+      , "Basic Information - Information - Will be accepting applications for training that begins in 2017-2018"  .= showJust iAccepting20172018 pInfo
+      , "Basic Information - Information - Program start dates"                                                   .= just iProgramStarts pInfo
+      , "Basic Information - Information - Participates in ERAS"                                                  .= showJust iEras pInfo
+      , "Basic Information - Information - Affiliated with US government"                                         .= showJust iAffiliatedUsGov pInfo
 
-      , "FacultyFullTimePhysician"    .= showJustJust fFullTimePhysician pFaculty
-      , "FacultyFullTimeNonPhysician" .= showJustJust fFullTimeNonPhysician pFaculty
-      , "FacultyPartTimePhysician"    .= showJustJust fPartTimePhysician pFaculty
-      , "PercentageFullTimePaidFemalePhysicianFaculty"  .= joinJust fPercentageFemalePaid pFaculty
-      , "RatioFullTimeEquivalentPaidFacultyToPositions" .= joinJust fRatioFullTime pFaculty
+      , "Faculty & Trainees - Program Faculty - Full-time paid - Physician"     .= showJustJust fFullTimePhysician pFacultyTable
+      , "Faculty & Trainees - Program Faculty - Full-time paid - Non-physician" .= showJustJust fFullTimeNonPhysician pFacultyTable
+      , "Faculty & Trainees - Program Faculty - Part-time paid - Physician"     .= showJustJust fPartTimePhysician pFacultyTable
+      , "Faculty & Trainees - Program Faculty - Part-time paid - Non-physician" .= showJustJust fPartTimeNonPhysician pFacultyTable
+      , "Faculty & Trainees - Program Faculty - Percentage of full-time paid female physician faculty"   .= joinJust fPercentageFemalePaid pProgramFaculty
+      , "Faculty & Trainees - Program Faculty - Ratio of full-time equivalent paid faculty to positions" .= joinJust fRatioFullTime pProgramFaculty
 
-      , "AvgTimeOnDutyDuringFirstYearExcludingBeeperCall"                             .= showJust wsAvgTimeOnDutyFirstYear pWorkSchedule
-      , "Maximum consecutive hours on duty during first year (excluding beeper call)" .= showJust wsMaxConsecutiveHoursOnDutyFirstYear pWorkSchedule
-      , "Average number of 24-hour off duty periods per week during first year"       .= showJust wsAvgNumOfOffDutyDaysPerWeekFirstYear pWorkSchedule
-      , "Program allows moonlighting (beyond GY1)"                                    .= showJust wsAllowsMoonlighting pWorkSchedule
-      , "Night float system"                                                          .= showJust wsNightFloat pWorkSchedule
-      , "Offers awareness and management of fatigue in residents/fellows"             .= showJust wsOffersAwareness pWorkSchedule
+      , "Work schedule - Work schedule - Avg hrs/wk on duty during first year (excluding beeper call)"                .= showJust wsAvgTimeOnDutyFirstYear pWorkSchedule
+      , "Work schedule - Work schedule - Maximum consecutive hours on duty during first year (excluding beeper call)" .= showJust wsMaxConsecutiveHoursOnDutyFirstYear pWorkSchedule
+      , "Work schedule - Work schedule - Average number of 24-hour off duty periods per week during first year"       .= showJust wsAvgNumOfOffDutyDaysPerWeekFirstYear pWorkSchedule
+      , "Work schedule - Work schedule - Program allows moonlighting (beyond GY1)"                                    .= showJust wsAllowsMoonlighting pWorkSchedule
+      , "Work schedule - Work schedule - Night float system"                                                          .= showJust wsNightFloat pWorkSchedule
+      , "Work schedule - Work schedule - Offers awareness and management of fatigue in residents/fellows"             .= showJust wsOffersAwareness pWorkSchedule
 
-      , "Most taxing schedule and frequency per year - Year 1"  .= showJustJust (fmap csMostTaxing .lookup 1) pCallSchedules
-      , "Most taxing schedule and frequency per year - Year 2"  .= showJustJust (fmap csMostTaxing .lookup 2) pCallSchedules
-      , "Most taxing schedule and frequency per year - Year 3"  .= showJustJust (fmap csMostTaxing .lookup 3) pCallSchedules
-      , "Most taxing schedule and frequency per year - Year 4"  .= showJustJust (fmap csMostTaxing .lookup 4) pCallSchedules
-      , "Beeper or home call (weeks/year) - Year 1"             .= showJustJust (fmap csBeeper . lookup 1) pCallSchedules
-      , "Beeper or home call (weeks/year) - Year 2"             .= showJustJust (fmap csBeeper . lookup 2) pCallSchedules
-      , "Beeper or home call (weeks/year) - Year 3"             .= showJustJust (fmap csBeeper . lookup 3) pCallSchedules
-      , "Beeper or home call (weeks/year) - Year 4"             .= showJustJust (fmap csBeeper . lookup 4) pCallSchedules
+      , "Work schedule - Call schedule - Most taxing schedule and frequency per year - Year 1"  .= showJustJust (fmap csMostTaxing .lookup 1) pCallSchedules
+      , "Work schedule - Call schedule - Most taxing schedule and frequency per year - Year 2"  .= showJustJust (fmap csMostTaxing .lookup 2) pCallSchedules
+      , "Work schedule - Call schedule - Most taxing schedule and frequency per year - Year 3"  .= showJustJust (fmap csMostTaxing .lookup 3) pCallSchedules
+      , "Work schedule - Call schedule - Most taxing schedule and frequency per year - Year 4"  .= showJustJust (fmap csMostTaxing .lookup 4) pCallSchedules
+      , "Work schedule - Call schedule - Beeper or home call (weeks/year) - Year 1"             .= showJustJust (fmap csBeeper . lookup 1) pCallSchedules
+      , "Work schedule - Call schedule - Beeper or home call (weeks/year) - Year 2"             .= showJustJust (fmap csBeeper . lookup 2) pCallSchedules
+      , "Work schedule - Call schedule - Beeper or home call (weeks/year) - Year 3"             .= showJustJust (fmap csBeeper . lookup 3) pCallSchedules
+      , "Work schedule - Call schedule - Beeper or home call (weeks/year) - Year 4"             .= showJustJust (fmap csBeeper . lookup 4) pCallSchedules
+
+      , "Educational environment - Educational Environment - Avg hours/week of regularly scheduled lectures/conferences during 1st year"                                              .= showJust eeAvgScheduledLecturesFirstYear pEducationalEnvironment
+      , "Educational environment - Educational Environment - Training at hospital outpatient clinics during 1st year"                                                                 .= showJust eeTrainingFirstYear pEducationalEnvironment
+      , "Educational environment - Educational Environment - Training during 1st year in ambulatory non-hospital community-based settings, eg, physician offices, community clinics"  .= showJust eeTrainingNonHospitalFirstYear pEducationalEnvironment
       ]
 
 
