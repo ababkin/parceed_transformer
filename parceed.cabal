@@ -29,4 +29,5 @@ executable parceed
     , conduit-extra                 
     , csv-conduit
     , resourcet
+    , errors
 
