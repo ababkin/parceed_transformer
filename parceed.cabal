@@ -30,4 +30,12 @@ executable parceed
     , csv-conduit
     , resourcet
     , errors
+    , persistent-mongoDB
+    , persistent
+    , persistent-template
+    , network
+    , mongoDB
+    , classy-prelude
+    , aeson-bson
+    , monad-control
 
