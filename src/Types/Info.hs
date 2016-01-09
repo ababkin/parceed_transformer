@@ -22,11 +22,11 @@ import Types.Util
 data Info = Info {
     iLengthOfTraining   :: Int
   , iRequiredLength     :: Int
-  , iAccepting20162017  :: Bool
-  , iAccepting20172018  :: Bool
+  , iAccepting20162017  :: Text
+  , iAccepting20172018  :: Text
   , iProgramStarts      :: Text
-  , iEras               :: Bool
-  , iAffiliatedUsGov    :: Bool
+  , iEras               :: Text
+  , iAffiliatedUsGov    :: Text
   } deriving Show
 
 instance FromJSON (Maybe Info) where
@@ -44,11 +44,11 @@ parseInfo (Object info) = do
   Info
     <$> lookupParsedIntValue   "Accredited length of training" is
     <*> lookupParsedIntValue   "Required length" is
-    <*> lookupParsedBoolValue  "Accepting applications for training that begins in 2016-2017" is
-    <*> lookupParsedBoolValue  "Will be accepting applications for training that begins in 2017-2018" is
+    <*> lookupValue  "Accepting applications for training that begins in 2016-2017" is
+    <*> lookupValue  "Will be accepting applications for training that begins in 2017-2018" is
     <*> lookupValue            "Program start dates" is
-    <*> lookupParsedBoolValue  "Participates in ERAS" is
-    <*> lookupParsedBoolValue  "Affiliated with US government" is
+    <*> lookupValue  "Participates in ERAS" is
+    <*> lookupValue  "Affiliated with US government" is
 parseInfo o = lift $ typeMismatch "Info" o
 
 
@@ -60,10 +60,10 @@ infoFields
 infoFields info = prefixWith prefix [
     "Accredited length of training"                                         .= showJust iLengthOfTraining info
   , "Required length"                                                       .= showJust iRequiredLength info
-  , "Accepting applications for training that begins in 2016-2017"          .= showJust iAccepting20162017 info
-  , "Will be accepting applications for training that begins in 2017-2018"  .= showJust iAccepting20172018 info
+  , "Accepting applications for training that begins in 2016-2017"          .= just iAccepting20162017 info
+  , "Will be accepting applications for training that begins in 2017-2018"  .= just iAccepting20172018 info
   , "Program start dates"                                                   .= just iProgramStarts info
-  , "Participates in ERAS"                                                  .= showJust iEras info
-  , "Affiliated with US government"                                         .= showJust iAffiliatedUsGov info
+  , "Participates in ERAS"                                                  .= just iEras info
+  , "Affiliated with US government"                                         .= just iAffiliatedUsGov info
   ]
 

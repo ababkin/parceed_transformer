@@ -11,7 +11,8 @@ executable parceed
   hs-source-dirs: src
   main-is:        Main.hs
   -- ghc-options:    -static -Wall -threaded -j -O2
-  ghc-options:    -Wall -threaded -O0 -static
+  ghc-options:    -Wall -threaded -O0 
+  -- -static
   buildable: True
   build-depends:
       base >= 4 && < 5
@@ -38,4 +39,6 @@ executable parceed
     , classy-prelude
     , aeson-bson
     , monad-control
+    , aeson-pretty
+    , unordered-containers
 

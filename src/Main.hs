@@ -24,7 +24,7 @@ import Data.CSV.Conduit
 import Data.Maybe (fromJust)
 import Data.CSV.Conduit.Conversion (toNamedRecord)
 import Data.Conduit.Lift (readerC)
-
+import Data.Aeson.Encode.Pretty (encodePretty)
 
 import Types
 
@@ -47,6 +47,10 @@ main = do
       maybeDocument <- lift $ next cursor
       case maybeDocument of
         Just doc -> do
+          {- liftIO $ do -}
+            {- putStrLn "\n-------------------------------------------------------------\n" -}
+            {- putStrLn . BL.unpack . encodePretty . toAeson . exclude ["_id"] $ doc -}
+          
           case fromJSON . Object . toAeson . exclude ["_id"] $ doc of
             Success p -> yield p
             Error err -> fail err

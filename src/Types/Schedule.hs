@@ -6,8 +6,8 @@ module Types.Schedule where
 
 import Control.Monad.Trans.Class (lift)
 import Data.ByteString (ByteString)
-import Control.Applicative (pure, (<$>), (<*>))
-import Control.Monad (join, (>=>), msum)
+import Control.Applicative (pure, (<$>), (<*>), (<|>))
+import Control.Monad (join, (>=>), msum, mplus)
 import GHC.Generics
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -30,12 +30,12 @@ import Types.Util
 type CallScheduleTable = [(Int, CallSchedule)]
 
 data WorkSchedule = WorkSchedule {
-    wsAvgTimeOnDutyFirstYear              :: Int
-  , wsMaxConsecutiveHoursOnDutyFirstYear  :: Int
-  , wsAvgNumOfOffDutyDaysPerWeekFirstYear :: Double
-  , wsAllowsMoonlighting                  :: Bool
-  , wsNightFloat                          :: Bool
-  , wsOffersAwareness                     :: Bool
+    wsAvgTimeOnDutyFirstYear              :: Text
+  , wsMaxConsecutiveHoursOnDutyFirstYear  :: Text
+  , wsAvgNumOfOffDutyDaysPerWeekFirstYear :: Text
+  , wsAllowsMoonlighting                  :: Text
+  , wsNightFloat                          :: Text
+  , wsOffersAwareness                     :: Text
   } deriving Show
 
 instance FromJSON (Maybe WorkSchedule) where
@@ -50,12 +50,12 @@ parseWorkSchedule :: Value -> MaybeT Parser WorkSchedule
 parseWorkSchedule (Object ws)   = do
     is <- lift $ ws .: "items"
     WorkSchedule 
-      <$> lookupParsedIntValue     "Avg hrs/wk on duty during first year (excluding beeper call)" is
-      <*> lookupParsedIntValue     "Maximum consecutive hours on duty during first year (excluding beeper call)" is
-      <*> lookupParsedDoubleValue  "Average number of 24-hour off duty periods per week during first year" is
-      <*> lookupParsedBoolValue    "Program allows moonlighting (beyond GY1)" is
-      <*> lookupParsedBoolValue    "Night float system            (Residents participate during first year)" is
-      <*> lookupParsedBoolValue    "Offers awareness and management of fatigue in residents/fellows" is
+      <$> lookupValue "Avg hrs/wk on duty during first year (excluding beeper call)" is
+      <*> lookupValue "Maximum consecutive hours on duty during first year (excluding beeper call)" is
+      <*> lookupValue "Average number of 24-hour off duty periods per week during first year" is
+      <*> lookupValue "Program allows moonlighting (beyond GY1)" is
+      <*> (lookupValue "Night float system" is `mplus` lookupValue "Night float system            (Residents do not participate during first year)" is `mplus` pure "")
+      <*> lookupValue "Offers awareness and management of fatigue in residents/fellows" is
 
 
 
@@ -87,7 +87,7 @@ instance FromJSON (Maybe CallScheduleTable) where
   parseJSON = runMaybeT . (
       parseTab "work-schedule" >=> 
       parseArticles >=>
-      msum . map parseTables >=>
+      fmap (concat . catMaybes) . mapM parseTables >=>
       lookupByTitle "Call schedule" >=>
       parseColumns >=>
       parseCallScheduleTable
@@ -95,14 +95,14 @@ instance FromJSON (Maybe CallScheduleTable) where
 
 parseCallScheduleTable :: [Value] -> MaybeT Parser CallScheduleTable
 parseCallScheduleTable cs = do
-    (Object yo)    <- lookupByTitle "Year" cs
-    ys         <- lift $ yo .: "values"
+    (Object yo)   <- lookupByTitle "Year" cs
+    ys            <- lift $ yo .: "values"
     
-    (Object mto)   <- lookupByTitle "Most taxing schedule and frequency per year" cs
-    mts    <- lift $ mto .: "values"
+    (Object mto)  <- lookupByTitle "Most taxing schedule and frequency per year" cs
+    mts           <- lift $ mto .: "values"
     
-    (Object bo)    <- lookupByTitle "Beeper or home call (weeks/year)" cs
-    bs        <- lift $ bo .: "values"
+    (Object bo)   <- lookupByTitle "Beeper or home call (weeks/year)" cs
+    bs            <- lift $ bo .: "values"
 
     mapM (\(String y, mt, b) -> 
           lift ( (readText y, ) <$> (CallSchedule <$> parseJSON mt <*> parseJSON b) )
@@ -119,12 +119,12 @@ scheduleFields
   ->  Maybe CallScheduleTable
   -> [(ByteString, ByteString)]
 scheduleFields work call = prefixWith workPrefix [
-    "Avg hrs/wk on duty during first year (excluding beeper call)"                .= showJust wsAvgTimeOnDutyFirstYear work
-  , "Work schedule - Work schedule - Maximum consecutive hours on duty during first year (excluding beeper call)" .= showJust wsMaxConsecutiveHoursOnDutyFirstYear work
-  , "Work schedule - Work schedule - Average number of 24-hour off duty periods per week during first year"       .= showJust wsAvgNumOfOffDutyDaysPerWeekFirstYear work
-  , "Work schedule - Work schedule - Program allows moonlighting (beyond GY1)"                                    .= showJust wsAllowsMoonlighting work
-  , "Work schedule - Work schedule - Night float system"                                                          .= showJust wsNightFloat work
-  , "Work schedule - Work schedule - Offers awareness and management of fatigue in residents/fellows"             .= showJust wsOffersAwareness work
+    "Avg hrs/wk on duty during first year (excluding beeper call)"                .= just wsAvgTimeOnDutyFirstYear work
+  , "Maximum consecutive hours on duty during first year (excluding beeper call)" .= just wsMaxConsecutiveHoursOnDutyFirstYear work
+  , "Average number of 24-hour off duty periods per week during first year"       .= just wsAvgNumOfOffDutyDaysPerWeekFirstYear work
+  , "Program allows moonlighting (beyond GY1)"                                    .= just wsAllowsMoonlighting work
+  , "Night float system"                                                          .= just wsNightFloat work
+  , "Offers awareness and management of fatigue in residents/fellows"             .= just wsOffersAwareness work
   ] ++ prefixWith callPrefix [
     "Most taxing schedule and frequency per year - Year 1"  .= showJustJust (fmap csMostTaxing .lookup 1) call
   , "Most taxing schedule and frequency per year - Year 2"  .= showJustJust (fmap csMostTaxing .lookup 2) call

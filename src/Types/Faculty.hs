@@ -39,7 +39,7 @@ instance FromJSON (Maybe FacultyTable) where
   parseJSON = runMaybeT . ( 
       parseTab "faculty-info" >=>
       parseArticles >=>
-      msum . map parseTables >=>
+      fmap (concat . catMaybes) . mapM parseTables >=>
       lookupByTitle "Program Faculty" >=>
       parseColumns >=>
       parseFacultyTable

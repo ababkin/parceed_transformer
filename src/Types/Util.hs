@@ -24,10 +24,10 @@ lookupValue
   => Text 
   -> [Value] 
   -> MaybeT Parser a
-lookupValue k os = MaybeT $ do
-  mrs <- mapM (\(Object o) -> o .:? k) os
+lookupValue k os = do
+  mrs <- lift $ mapM (\(Object o) -> o .:? k) os
   case catMaybes mrs of
-    [r] -> return r
+    [r] -> MaybeT $ return r
     []  -> fail $ "Could not find value for key: " ++ T.unpack k
     _   -> fail $ "Found multiple key value pairs in the list of objects for key: " ++ T.unpack k
 
@@ -83,9 +83,9 @@ parseArticles o = lift $ typeMismatch "Articles" o
 
 parseTables
   :: Value
-  -> MaybeT Parser [Value]
+  -> MaybeT Parser (Maybe [Value])
 parseTables (Object o) =
-  MaybeT $ o .:? "tables"
+  MaybeT ( Just <$> o .:? "tables" )
 parseTables o = lift $ typeMismatch "Tables" o
 
 

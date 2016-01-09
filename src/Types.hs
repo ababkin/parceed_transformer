@@ -19,6 +19,7 @@ import Data.CSV.Conduit.Conversion  (ToNamedRecord (..), namedRecord,
 
 
 import Types.Info
+import Types.GeneralInfo
 import Types.Faculty
 import Types.Schedule
 import Types.EdEnv
@@ -34,6 +35,7 @@ data Program = Program {
   , pWorkSchedule   :: Maybe WorkSchedule
   , pCallSchedules  :: Maybe CallScheduleTable
   , pEducationalEnvironment     :: Maybe EducationalEnvironment
+  , pGeneralInfo    :: Maybe GeneralInfo
   {- , pCompensationAndLeaveTable  :: Maybe CompensationAndLeaveTable -}
   } deriving Show
 
@@ -47,19 +49,21 @@ instance FromJSON Program where
     <*> parseJSON obj
     <*> parseJSON obj
     <*> parseJSON obj
+    <*> parseJSON obj
     {- <*> parseJSON obj -}
   parseJSON o = typeMismatch "Program" o
 
 
 instance ToNamedRecord Program 
   where
-    toNamedRecord Program{pid, pTitle, pInfo, pFacultyTable, pProgramFaculty, pWorkSchedule, pCallSchedules, pEducationalEnvironment} = namedRecord $ [
+    toNamedRecord Program{pid, pTitle, pInfo, pFacultyTable, pProgramFaculty, pWorkSchedule, pCallSchedules, pEducationalEnvironment, pGeneralInfo} = namedRecord $ [
         "Program Id"               .= pid
       , "Program Title"            .= pTitle]
       ++ infoFields pInfo
       ++ facultyFields pFacultyTable pProgramFaculty
       ++ scheduleFields pWorkSchedule pCallSchedules
       ++ edEnvFields pEducationalEnvironment
+      ++ generalInfoFields pGeneralInfo
       ++ [
       {- , "Employment Policies & Benefits - Compensation and leave - Salary compensation - Grad year 2" .= showJustJust (fmap clSalaryCompensation .lookup 2) pCompensationAndLeave -}
       {- , "Employment Policies & Benefits - Compensation and leave - Vacation days - Grad year 2"       .= showJustJust (fmap clVacationsDays .lookup 2) pCompensationAndLeave -}
