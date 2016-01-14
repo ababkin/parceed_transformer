@@ -20,7 +20,8 @@ import Control.Monad.Trans.Maybe (MaybeT(MaybeT), runMaybeT)
 import Types.Util
 
 data Info = Info {
-    iLengthOfTraining   :: Int
+    iWebsite            :: Text
+  , iLengthOfTraining   :: Int
   , iRequiredLength     :: Int
   , iAccepting20162017  :: Text
   , iAccepting20172018  :: Text
@@ -42,13 +43,14 @@ parseInfo :: Value -> MaybeT Parser Info
 parseInfo (Object info) = do
   is <- lift $ info .: "items"
   Info
-    <$> lookupParsedIntValue   "Accredited length of training" is
-    <*> lookupParsedIntValue   "Required length" is
-    <*> lookupValue  "Accepting applications for training that begins in 2016-2017" is
-    <*> lookupValue  "Will be accepting applications for training that begins in 2017-2018" is
-    <*> lookupValue            "Program start dates" is
-    <*> lookupValue  "Participates in ERAS" is
-    <*> lookupValue  "Affiliated with US government" is
+    <$> lookupValue           "Web Address" is
+    <*> lookupParsedIntValue  "Accredited length of training" is
+    <*> lookupParsedIntValue  "Required length" is
+    <*> lookupValue           "Accepting applications for training that begins in 2016-2017" is
+    <*> lookupValue           "Will be accepting applications for training that begins in 2017-2018" is
+    <*> lookupValue           "Program start dates" is
+    <*> lookupValue           "Participates in ERAS" is
+    <*> lookupValue           "Affiliated with US government" is
 parseInfo o = lift $ typeMismatch "Info" o
 
 
@@ -58,7 +60,8 @@ infoFields
   :: Maybe Info
   -> [(ByteString, ByteString)]
 infoFields info = prefixWith prefix [
-    "Accredited length of training"                                         .= showJust iLengthOfTraining info
+    "Web Address"                                                           .= just iWebsite info
+  , "Accredited length of training"                                         .= showJust iLengthOfTraining info
   , "Required length"                                                       .= showJust iRequiredLength info
   , "Accepting applications for training that begins in 2016-2017"          .= just iAccepting20162017 info
   , "Will be accepting applications for training that begins in 2017-2018"  .= just iAccepting20172018 info

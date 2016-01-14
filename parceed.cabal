@@ -24,16 +24,13 @@ executable parceed
     , containers
     , filepath
     , aeson
-    , time >= 1.5
+    , time
     , cassava
     , conduit                       
     , conduit-extra                 
     , csv-conduit
     , resourcet
     , errors
-    , persistent-mongoDB
-    , persistent
-    , persistent-template
     , network
     , mongoDB
     , classy-prelude
