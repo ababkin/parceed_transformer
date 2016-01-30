@@ -47,6 +47,19 @@ data GeneralInfo = GeneralInfo {
   , giLevels    :: USMLEReqs
   , giAvgLevel1 :: Text
   , giIMGs      :: IMGs
+  , giPrimarySite       :: Text
+  , giProgramDescribed  :: Text
+  , giReqPrevGME  :: Text
+  , giOffersPos  :: Text
+  , giParticipatesMainMatch  :: Text
+  , giParticipatesAdvanced  :: Text
+  , giParticipatesSF  :: Text
+  , giParticipatesAnother  :: Text
+  , giInterviewsLast  :: Text
+  , giReqLetters  :: Text
+  , giLatestDate20162017  :: Text
+  , giEarliestDate20172018  :: Text
+  , giLatestDate20172018  :: Text
   } deriving Show
 
 
@@ -63,12 +76,24 @@ instance FromJSON (Maybe GeneralInfo) where
           <*> (parseUSMLESteps =<< parseColumns =<< lookupByTitle "COMLEX Level 1 and 2 requirements for interview consideration (DOs only)" ts)
           <*> (getFirstVal =<< lookupByTitle "Average Level 1 score (range) of current residents/fellows" =<< fmap concat (mapM parseColumns ts) ) 
           <*> parseIMGs as
+          <*> lookupValueInArticles "Primary teaching site" as
+          <*> lookupValueInArticles "Program best described as" as
+          <*> lookupValueInArticles "Requires previous GME" as
+          <*> lookupValueInArticles "Offers preliminary positions" as
+          <*> lookupValueInArticles "Participates in the Main Match of the National Resident Matching Program (NRMP)" as
+          <*> lookupValueInArticles "Participates in the Advanced or Fellowship Match of the National Resident Matching Program (NRMP)" as
+          <*> lookupValueInArticles "Participant in San Francisco match" as
+          <*> lookupValueInArticles "Participant in another matching program" as
+          <*> lookupValueInArticles "Interviews conducted last year for first year positions" as
+          <*> lookupValueInArticles "Required letters of recommendation" as
+          <*> lookupValueInArticles "Latest date for applications for 2016-2017" as
+          <*> lookupValueInArticles "Earliest date for applications for 2017-2018" as
+          <*> lookupValueInArticles "Latest date for applications for 2017-2018" as
       )
     )
 
 
-
-parseTotalProgramSizeTable :: [Value] -> MaybeT Parser TotalProgramSizeTable
+{- parseTotalProgramSizeTable :: [Value] -> MaybeT Parser TotalProgramSizeTable -}
 parseTotalProgramSizeTable cs = do
     (Object yo)   <- lookupByTitle "Year" cs
     ys            <- lift $ yo .: "values"
@@ -141,7 +166,19 @@ generalInfoFields gi =
     , "IMGs should have, among other qualifications, one or more of the following.  Contact the program for additional information. - H1-B visa"                    .= just isH1B imgs
     , "IMGs should have, among other qualifications, one or more of the following.  Contact the program for additional information. - F-1 visa"                     .= just isF1 imgs
     , "IMGs should have, among other qualifications, one or more of the following.  Contact the program for additional information. - Unrestricted state medical license for this state"  .= just isUnrestricted imgs
+
+    , "Primary teaching site"       .= just giPrimarySite gi
+    , "Program best described as"   .= just giProgramDescribed gi
+    , "Requires previous GME"   .= just giReqPrevGME gi
+    , "Offers preliminary positions"   .= just giOffersPos gi
+    , "Participates in the Main Match of the National Resident Matching Program (NRMP)"   .= just giParticipatesMainMatch gi
+    , "Participates in the Advanced or Fellowship Match of the National Resident Matching Program (NRMP)"   .= just giParticipatesAdvanced gi
+    , "Participant in San Francisco match"   .= just giParticipatesSF gi
+    , "Participant in another matching program"   .= just giParticipatesAnother gi
+    , "Interviews conducted last year for first year positions"   .= just giInterviewsLast gi
+    , "Required letters of recommendation"   .= just giReqLetters gi
+    , "Latest date for applications for 2016-2017"   .= just giLatestDate20162017 gi
+    , "Earliest date for applications for 2017-2018"   .= just giEarliestDate20172018 gi
+    , "Latest date for applications for 2017-2018"   .= just giLatestDate20172018 gi
     ]
-
-
 

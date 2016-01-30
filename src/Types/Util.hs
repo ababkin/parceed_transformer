@@ -118,4 +118,4 @@ lookupValueInArticles key =
 
   where
     lookupValueInArticle key (Object o) =
-      lookupValue key =<< lift (o .: "items")
+      lookupValue key =<< MaybeT (o .:? "items")
