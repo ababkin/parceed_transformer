@@ -86,7 +86,7 @@ instance FromJSON (Maybe EducationalEnvironment) where
         <$> lookupValueInArticles "Avg hours/week of regularly scheduled lectures/conferences during 1st year" as
         <*> lookupValueInArticles "Training at hospital outpatient clinics during 1st year" as
         <*> lookupValueInArticles "Training during 1st year in ambulatory non-hospital community-based settings, eg, physician offices, community clinics" as
-        <*> parseProgramEvaluation as
+        <*> (parseProgramEvaluation   =<< parseSubTable =<< lookupByTitle "Program evaluation" as)
         <*> (parseResidentEvaluation  =<< parseSubTable =<< lookupByTitle "Resident evaluation" as)
         <*> (parseEducationalFeatures =<< parseSubTable =<< lookupByTitle "Educational features" as)
         <*> (parseEducationalBenefits =<< parseSubTable =<< lookupByTitle "Educational benefits" as)
@@ -97,13 +97,12 @@ parseSubTable :: Value -> MaybeT Parser [Value]
 parseSubTable (Object pe) = lift $ pe .: "items"
 
 parseProgramEvaluation :: [Value] -> MaybeT Parser ProgramEvaluation
-parseProgramEvaluation as = lookupByTitle "Program evaluation" as >>= parseSubTable >>= (\is ->
+parseProgramEvaluation is =
   ProgramEvaluation
     <$> lookupValue "Program graduation rates" is
     <*> lookupValue "Resident assessment of curriculum" is
     <*> lookupValue "In-training examination scores" is
     <*> lookupValue "Performance-based assessment scores (eg, OSCE)" is
-  )
 
 parseResidentEvaluation :: [Value] -> MaybeT Parser ResidentEvaluation
 parseResidentEvaluation is =

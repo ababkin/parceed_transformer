@@ -23,19 +23,21 @@ import Types.GeneralInfo
 import Types.Faculty
 import Types.Schedule
 import Types.EdEnv
+import Types.PoliciesBenefits
 import Types.Comp
 import Types.Util
 
 data Program = Program {
-    pid       :: Text
-  , pTitle    :: Text
-  , pInfo     :: Maybe Info
-  , pFacultyTable   :: Maybe FacultyTable
-  , pProgramFaculty :: Maybe ProgramFaculty
-  , pWorkSchedule   :: Maybe WorkSchedule
-  , pCallSchedules  :: Maybe CallScheduleTable
+    pid               :: Text
+  , pTitle            :: Text
+  , pInfo             :: Maybe Info
+  , pFacultyTable     :: Maybe FacultyTable
+  , pProgramFaculty   :: Maybe ProgramFaculty
+  , pWorkSchedule     :: Maybe WorkSchedule
+  , pCallSchedules    :: Maybe CallScheduleTable
   , pEducationalEnvironment     :: Maybe EducationalEnvironment
-  , pGeneralInfo    :: Maybe GeneralInfo
+  , pGeneralInfo      :: Maybe GeneralInfo
+  , pPoliciesBenefits :: Maybe PoliciesBenefits
   {- , pCompensationAndLeaveTable  :: Maybe CompensationAndLeaveTable -}
   } deriving Show
 
@@ -50,13 +52,14 @@ instance FromJSON Program where
     <*> parseJSON obj
     <*> parseJSON obj
     <*> parseJSON obj
+    <*> parseJSON obj
     {- <*> parseJSON obj -}
   parseJSON o = typeMismatch "Program" o
 
 
 instance ToNamedRecord Program 
   where
-    toNamedRecord Program{pid, pTitle, pInfo, pFacultyTable, pProgramFaculty, pWorkSchedule, pCallSchedules, pEducationalEnvironment, pGeneralInfo} = namedRecord $ [
+    toNamedRecord Program{pid, pTitle, pInfo, pFacultyTable, pProgramFaculty, pWorkSchedule, pCallSchedules, pEducationalEnvironment, pGeneralInfo, pPoliciesBenefits} = namedRecord $ [
         "Program Id"               .= pid
       , "Program Title"            .= pTitle]
       ++ infoFields pInfo
@@ -64,6 +67,7 @@ instance ToNamedRecord Program
       ++ scheduleFields pWorkSchedule pCallSchedules
       ++ edEnvFields pEducationalEnvironment
       ++ generalInfoFields pGeneralInfo
+      ++ policiesBenefitsFields pPoliciesBenefits
       ++ [
       {- , "Employment Policies & Benefits - Compensation and leave - Salary compensation - Grad year 2" .= showJustJust (fmap clSalaryCompensation .lookup 2) pCompensationAndLeave -}
       {- , "Employment Policies & Benefits - Compensation and leave - Vacation days - Grad year 2"       .= showJustJust (fmap clVacationsDays .lookup 2) pCompensationAndLeave -}
