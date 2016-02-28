@@ -63,7 +63,7 @@ data GeneralInfo = GeneralInfo {
   } deriving Show
 
 
-instance FromJSON (Maybe GeneralInfo) where
+instance {-# OVERLAPPING #-} FromJSON (Maybe GeneralInfo) where
   parseJSON = runMaybeT . (
       parseTab "general-info" >=> 
       parseArticles >=>

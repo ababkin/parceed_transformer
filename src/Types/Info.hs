@@ -30,7 +30,7 @@ data Info = Info {
   , iAffiliatedUsGov    :: Text
   } deriving Show
 
-instance FromJSON (Maybe Info) where
+instance {-# OVERLAPPING #-} FromJSON (Maybe Info) where
   parseJSON = runMaybeT . (
       parseTab "basic-info" >=> 
       parseArticles >=>

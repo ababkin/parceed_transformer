@@ -105,7 +105,7 @@ lookupByTitle title is =
      msum (map finder is)
   where
     finder obj@(Object o) =
-      (\(String t) -> if t == title then return obj else hoistMaybe Nothing) =<< MaybeT (o .:? "title")
+      (\(String t) -> if T.strip t == T.strip title then return obj else hoistMaybe Nothing) =<< MaybeT (o .:? "title")
     finder o = fail $ "undexpected non-object type: " ++ show o
 
 

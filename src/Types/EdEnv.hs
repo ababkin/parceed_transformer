@@ -78,7 +78,7 @@ data EducationalEnvironment = EducationalEnvironment {
   , eeEducationalFeatures           :: EducationalFeatures
   , eeEducationalBenefits           :: EducationalBenefits
   } deriving Show
-instance FromJSON (Maybe EducationalEnvironment) where
+instance {-# OVERLAPPING #-} FromJSON (Maybe EducationalEnvironment) where
   parseJSON = runMaybeT . ( 
       parseTab "educational-environment" >=>
       parseArticles >=>

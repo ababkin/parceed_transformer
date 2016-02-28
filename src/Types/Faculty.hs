@@ -35,7 +35,7 @@ data FacultyTable = FacultyTable {
   } deriving Show
 
 
-instance FromJSON (Maybe FacultyTable) where
+instance {-# OVERLAPPING #-} FromJSON (Maybe FacultyTable) where
   parseJSON = runMaybeT . ( 
       parseTab "faculty-info" >=>
       parseArticles >=>
@@ -55,7 +55,48 @@ parseFacultyTable cs = do
     
     return $ FacultyTable (readText ftp) (readText ftnp) (readText ptp) (readText ptnp)
 
+
+
+
+data CharacteristicsTable = CharacteristicsTable {
+    cUSMD   :: Maybe Double
+  , cIMG    :: Maybe Double
+  , cDO     :: Maybe Double 
+  , cFemale :: Maybe Double
+  , cMale   :: Maybe Double
+  } deriving Show
+
+
+instance {-# OVERLAPPING #-} FromJSON (Maybe CharacteristicsTable) where
+  parseJSON = runMaybeT . ( 
+      parseTab "faculty-info" >=>
+      parseArticles >=>
+      fmap (concat . catMaybes) . mapM parseTables >=>
+      lookupByTitle "Characteristics of trainees" >=>
+      parseColumns >=>
+      parseCharacteristicsTable
+    )
+
+
+parseCharacteristicsTable :: [Value] -> MaybeT Parser CharacteristicsTable
+parseCharacteristicsTable cs = do
+    (Object usmdc)    <- lookupByTitle "% USMD" cs
+    (String usmdv):_  <- lift $ usmdc .: "values"
+    (Object imgc)     <- lookupByTitle "% IMG" cs
+    (String imgv):_   <- lift $ imgc .: "values"
+    (Object doc)      <- lookupByTitle "% DO" cs
+    (String dov):_    <- lift $ doc .: "values"
+    (Object femalec)  <- lookupByTitle "% Female" cs
+    (String femalev):_  <- lift $ femalec .: "values"
+    (Object malec)      <- lookupByTitle "% Male" cs
+    (String malev):_    <- lift $ malec .: "values"
+    
+    return $ CharacteristicsTable (readText usmdv) (readText imgv) (readText dov) (readText femalev) (readText malev)
+
+
+readText :: Read a => Text -> Maybe a
 readText = readMaybe . T.unpack
+
 
 
 
@@ -64,7 +105,7 @@ data ProgramFaculty = ProgramFaculty {
   , fRatioFullTime        :: Text
   } deriving Show
 
-instance FromJSON (Maybe ProgramFaculty) where
+instance {-# OVERLAPPING #-} FromJSON (Maybe ProgramFaculty) where
   parseJSON = runMaybeT . (
       parseTab "faculty-info" >=>
       parseArticles >=>
@@ -81,15 +122,20 @@ prefix = "Faculty & Trainees - Program Faculty - "
 
 facultyFields 
   :: Maybe FacultyTable
+  -> Maybe CharacteristicsTable
   -> Maybe ProgramFaculty
   -> [(ByteString, ByteString)]
-facultyFields facultyTable programFaculty = prefixWith prefix [
+facultyFields facultyTable characteristicsTable programFaculty = prefixWith prefix [
     "Full-time paid - Physician"     .= showJustJust fFullTimePhysician facultyTable
   , "Full-time paid - Non-physician" .= showJustJust fFullTimeNonPhysician facultyTable
   , "Part-time paid - Physician"     .= showJustJust fPartTimePhysician facultyTable
   , "Part-time paid - Non-physician" .= showJustJust fPartTimeNonPhysician facultyTable
+  , "% USMD"    .= showJustJust cUSMD characteristicsTable
+  , "% IMG"     .= showJustJust cIMG characteristicsTable
+  , "% DO"      .= showJustJust cDO characteristicsTable
+  , "% Female"  .= showJustJust cFemale characteristicsTable
+  , "% Male"    .= showJustJust cMale characteristicsTable
   , "Percentage of full-time paid female physician faculty"   .= just fPercentageFemalePaid programFaculty
   , "Ratio of full-time equivalent paid faculty to positions" .= just fRatioFullTime programFaculty
   ]
-
 

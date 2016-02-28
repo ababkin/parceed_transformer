@@ -40,7 +40,7 @@ data MajorMedicalBenefits = MajorMedicalBenefits {
 data PoliciesBenefits = PoliciesBenefits {
     pbMajorMedicalBenefits    :: MajorMedicalBenefits
   } deriving Show
-instance FromJSON (Maybe PoliciesBenefits) where
+instance {-# OVERLAPPING #-} FromJSON (Maybe PoliciesBenefits) where
   parseJSON = runMaybeT . ( 
       parseTab "educational-environment" >=>
       parseArticles >=>

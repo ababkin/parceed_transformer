@@ -38,7 +38,7 @@ data WorkSchedule = WorkSchedule {
   , wsOffersAwareness                     :: Text
   } deriving Show
 
-instance FromJSON (Maybe WorkSchedule) where
+instance {-# OVERLAPPING #-} FromJSON (Maybe WorkSchedule) where
   parseJSON = runMaybeT . ( 
       parseTab "work-schedule" >=> 
       parseArticles >=>
@@ -83,7 +83,7 @@ data CallSchedule = CallSchedule {
   , csBeeper      :: Schedule
   } deriving Show
 
-instance FromJSON (Maybe CallScheduleTable) where
+instance {-# OVERLAPPING #-} FromJSON (Maybe CallScheduleTable) where
   parseJSON = runMaybeT . (
       parseTab "work-schedule" >=> 
       parseArticles >=>

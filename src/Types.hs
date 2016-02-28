@@ -32,6 +32,7 @@ data Program = Program {
   , pTitle            :: Text
   , pInfo             :: Maybe Info
   , pFacultyTable     :: Maybe FacultyTable
+  , pCharacteristicsTable :: Maybe CharacteristicsTable
   , pProgramFaculty   :: Maybe ProgramFaculty
   , pWorkSchedule     :: Maybe WorkSchedule
   , pCallSchedules    :: Maybe CallScheduleTable
@@ -53,17 +54,18 @@ instance FromJSON Program where
     <*> parseJSON obj
     <*> parseJSON obj
     <*> parseJSON obj
-    {- <*> parseJSON obj -}
+    <*> parseJSON obj
   parseJSON o = typeMismatch "Program" o
 
 
 instance ToNamedRecord Program 
   where
-    toNamedRecord Program{pid, pTitle, pInfo, pFacultyTable, pProgramFaculty, pWorkSchedule, pCallSchedules, pEducationalEnvironment, pGeneralInfo, pPoliciesBenefits} = namedRecord $ [
+    toNamedRecord Program{pid, pTitle, pInfo, pFacultyTable, pCharacteristicsTable, pProgramFaculty, pWorkSchedule, 
+                          pCallSchedules, pEducationalEnvironment, pGeneralInfo, pPoliciesBenefits} = namedRecord $ [
         "Program Id"               .= pid
       , "Program Title"            .= pTitle]
       ++ infoFields pInfo
-      ++ facultyFields pFacultyTable pProgramFaculty
+      ++ facultyFields pFacultyTable pCharacteristicsTable pProgramFaculty
       ++ scheduleFields pWorkSchedule pCallSchedules
       ++ edEnvFields pEducationalEnvironment
       ++ generalInfoFields pGeneralInfo
